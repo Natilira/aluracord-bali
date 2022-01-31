@@ -1,28 +1,77 @@
 import { Box, Text, TextField, Image, Button } from "@skynexui/components";
 import React from "react";
 import appConfig from "../config.json";
+import { useRouter } from 'next/router';
+import { createClient } from "@supabase/supabase-js";
+import { ButtonSendSticker } from '../src/components/ButtonSendSticker';
+
+// Como fazer AJAX: https://medium.com/@omariosouto/entendendo-como-fazer-ajax-com-a-fetchapi-977ff20da3c6
+const SUPABASE_ANON_KEY ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MzQ5MDYwMSwiZXhwIjoxOTU5MDY2NjAxfQ.00ynh9RTK_AiU4W5WIF8fW9WTQmHCQ_bVuUmrY4fb1s";
+const SUPABASE_URL = "https://kpsluxoghvyuadwrpbem.supabase.co";
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function escutaMensagensEmTempoReal(adicionaMensagem) {
+    return supabaseClient
+        .from('mensagens')
+        .on('INSERT', (respostaLive) => {
+            adicionaMensagem(respostaLive.new);
+        })
+        .subscribe();
+}
 
 export default function ChatPage() {
-    const [mensagem, setMensagem] = React.useState('');
+    const roteamento = useRouter();
+    const usuarioLogado = roteamento.query.username;
+    const [mensagem, setMensagem] = React.useState("");
     const [listaDeMensagens, setListaDeMensagens] = React.useState([]);
-    /* Usuário
-        - Usuário digita no campo textarea
-        - aperta o enter para enviar
-        - tem que adicionar o texto na listagem
-        dev
-        (x) campo criado
-        ( )vamos usar o onChange usa o useState (ter if para caso seja enter pra limpar a variavel)
-        ( ) lista de mensagens 
-        */
+    const [loaded, setLoaded] = React.useState('flex');
+
+    React.useEffect(() => {
+        supabaseClient
+            .from("mensagens")
+            .select("*")
+            .order('id',{ ascending: false})
+            .then(({data}) => {
+                //console.log("Dados da consulta:", data);
+                setListaDeMensagens(data);
+                setLoaded('none');
+            });
+        
+    const subscription = escutaMensagensEmTempoReal((novaMensagem) => {
+            console.log('Nova mensagem:',novaMensagem);
+            console.log('listaDemensagens:', listaDeMensagens);
+            
+            setListaDeMensagens((valorAtualDaLista) => {
+                console.log('valorAtualDaLista:', valorAtualDaLista);
+                return[
+                    novaMensagem,
+                    ...valorAtualDaLista,
+                ]
+            });
+        });  
+        
+        return () => {
+            subscription.unsubscribe();
+        }
+    }, []);
 
     function handleNovaMensagem(novaMensagem) {
         const mensagem = {
-            id: listaDeMensagens.length + 1,
-            de: "natilira",
+            //id: listaDeMensagens.length + 1,
+            de: usuarioLogado,
             texto: novaMensagem,
         };
-        setListaDeMensagens([mensagem, ...listaDeMensagens]);
-        setMensagem("");
+
+        supabaseClient
+            .from('mensagens')
+            .insert([
+                mensagem
+            ])
+            .then(({ data })=>{
+                console.log('criando mensagem:' ,data);
+            }); 
+
+        setMensagem('');
     }
 
     return (
@@ -31,8 +80,8 @@ export default function ChatPage() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: appConfig.theme.colors.primary[500],
-                backgroundImage: `url(https://virtualbackgrounds.site/wp-content/uploads/2020/08/the-matrix-digital-rain.jpg)`,
+                backgroundColor: appConfig.theme.colors.primary[100],
+                backgroundImage: `url(https://i1.wp.com/multarte.com.br/wp-content/uploads/2018/12/azul-claro23.jpg?resize=768%2C480&ssl=1)`,
                 backgroundRepeat: "no-repeat",
                 backgroundSize: "cover",
                 backgroundBlendMode: "multiply",
@@ -46,7 +95,7 @@ export default function ChatPage() {
                     flex: 1,
                     boxShadow: "0 2px 10px 0 rgb(0 0 0 / 20%)",
                     borderRadius: "5px",
-                    backgroundColor: appConfig.theme.colors.neutrals[700],
+                    backgroundColor: appConfig.theme.colors.neutrals[400],
                     height: "100%",
                     maxWidth: "95%",
                     maxHeight: "95vh",
@@ -60,7 +109,7 @@ export default function ChatPage() {
                         display: "flex",
                         flex: 1,
                         height: "80%",
-                        backgroundColor: appConfig.theme.colors.neutrals[600],
+                        backgroundColor: appConfig.theme.colors.neutrals[700],
                         flexDirection: "column",
                         borderRadius: "5px",
                         padding: "16px",
@@ -78,14 +127,13 @@ export default function ChatPage() {
                     <Box
                         as="form"
                         styleSheet={{
-                            display: "flex",
+                            display: 'flex',
                             alignItems: "center",
                         }}
                     >
                         <TextField
                             value={mensagem}
                             onChange={(event) => {
-                                console.log(event);
                                 const valor = event.target.value;
                                 setMensagem(valor);
                             }}
@@ -108,7 +156,12 @@ export default function ChatPage() {
                                 color: appConfig.theme.colors.neutrals[200],
                             }}
                         />
-
+                        <ButtonSendSticker
+                           onStickerClick = {(sticker) =>{
+                               console.log('[USANDO O COMPONENTE] salva esse sticker no banco',sticker);
+                               handleNovaMensagem (':sticker: ' + sticker);
+                             }}
+                        />
                     </Box>
                 </Box>
             </Box>
@@ -141,7 +194,7 @@ function Header() {
 }
 
 function MessageList(props) {
-    console.log(props);
+    //console.log(props);
     return (
         <Box
             tag="ul"
@@ -165,7 +218,7 @@ function MessageList(props) {
                             marginBottom: "12px",
                             hover: {
                                 backgroundColor: appConfig.theme.colors.neutrals[700],
-                            },
+                            }
                         }}
                     >
                         <Box
@@ -195,7 +248,14 @@ function MessageList(props) {
                                 {(new Date().toLocaleDateString())}
                             </Text>
                         </Box>
-                        {mensagem.texto}
+                        {mensagem.texto.startsWith(':sticker:')
+                            ? (
+                                <Image src={mensagem.texto.replace(':sticker:', '')} />
+                            )
+                            : (
+                                mensagem.texto
+                            )}
+                        {/* {mensagem.texto} */}
                     </Text>
                 );
             })}

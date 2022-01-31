@@ -48,9 +48,9 @@ export default function PaginaInicial() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: appConfig.theme.colors.primary[500],
+          backgroundColor: appConfig.theme.colors.primary[100],
           backgroundImage:
-            "url(https://virtualbackgrounds.site/wp-content/uploads/2020/08/the-matrix-digital-rain.jpg)",
+            "url(https://i1.wp.com/multarte.com.br/wp-content/uploads/2018/12/azul-claro23.jpg?resize=768%2C480&ssl=1)",
           backgroundRepeat: "no-repeat",
           backgroundSize: "cover",
           backgroundBlendMode: "multiply",
@@ -80,7 +80,7 @@ export default function PaginaInicial() {
             onSubmit={function (infosDoEvento) {
                 infosDoEvento.preventDefault();
                 console.log('Alguem submeteu o form');
-                roteamento.push('/chat');
+                roteamento.push(`/chat?username=${username}`);
                 //window.location.href = '/chat';
             }}
             styleSheet={{
@@ -93,7 +93,7 @@ export default function PaginaInicial() {
               marginBottom: "32px",
             }}
           >
-            <Title tag="h2">Bem Vindos!!</Title>
+            <Title tag="h2">Bem Vindos!</Title>
             <Text
               variant="body3"
               styleSheet={{
@@ -143,7 +143,7 @@ export default function PaginaInicial() {
               fullWidth
               buttonColors={{
                 contrastColor: appConfig.theme.colors.neutrals["000"],
-                mainColor: appConfig.theme.colors.primary[500],
+                mainColor: appConfig.theme.colors.primary[300],
                 mainColorLight: appConfig.theme.colors.primary[400],
                 mainColorStrong: appConfig.theme.colors.primary[600],
               }}
